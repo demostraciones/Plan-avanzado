@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Mayorista y Minorista</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f1f5f9; color: #1e293b; padding-bottom: 90px; }
+
+        /* Encabezado */
+        header { background: #0f172a; color: #fff; padding: 18px 15px; text-align: center; border-bottom: 4px solid #22c55e; }
+        header h1 { font-size: 1.3rem; margin-bottom: 4px; }
+        header p { font-size: 0.85rem; color: #94a3b8; }
+
+        .container { max-width: 500px; margin: 0 auto; padding: 12px; }
+
+        /* Selector de Tipo de Cliente */
+        .mode-switch { display: flex; background: #cbd5e1; border-radius: 8px; padding: 4px; margin-bottom: 15px; }
+        .mode-switch button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; background: transparent; color: #475569; transition: 0.2s; }
+        .mode-switch button.active { background: #fff; color: #0f172a; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* Tarjeta de Producto */
+        .card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; gap: 12px; align-items: center; }
+        .card img { width: 75px; height: 75px; object-fit: cover; border-radius: 8px; background: #e2e8f0; }
+        .card-info { flex: 1; }
+        .card-info h3 { font-size: 0.95rem; color: #1e293b; margin-bottom: 4px; }
+        .card-info p { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; }
+        .price { font-size: 1rem; font-weight: bold; color: #0284c7; }
+
+        /* Botón de Agregar */
+        .btn-add { background: #22c55e; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+        .btn-add:active { transform: scale(0.96); }
+
+        /* Barra Inferior de Carrito */
+        footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 15px; box-shadow: 0 -3px 10px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .cart-summary { text-align: left; }
+        .cart-summary span { display: block; font-size: 0.75rem; color: #64748b; }
+        .cart-summary strong { font-size: 1.1rem; color: #0f172a; }
+
+        .btn-send { background: #22c55e; color: white; text-decoration: none; padding: 12px 18px; border-radius: 25px; font-weight: bold; font-size: 0.9rem; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="nombre-negocio">Distribuidora Nova</h1>
+        <p>Catálogo Mayorista / Minorista Directo</p>
+    </header>
+
+    <div class="container">
+        <!-- Switch Mayorista/Minorista -->
+        <div class="mode-switch">
+            <button id="btn-minorista" class="active" onclick="setModo('minorista')">Venta Minorista</button>
+            <button id="btn-mayorista" onclick="setModo('mayorista')">Lista Mayorista</button>
+        </div>
+
+        <!-- Lista de Productos -->
+        <div id="lista-productos"></div>
+    </div>
+
+    <!-- Carrito Flotante -->
+    <footer>
+        <div class="cart-summary">
+            <span>Total (<span id="cart-count">0</span> items):</span>
+            <strong id="cart-total">$0</strong>
+        </div>
+        <button class="btn-send" onclick="enviarPedido()">💬 Pedir por WA</button>
+    </footer>
+
+    <script>
+        // CONFIGURACIÓN DEL CLIENTE
+        const NUMERO_WA = "5491100000000"; // Cambiar por el número de WhatsApp
+
+        // BASE DE DATOS DE PRODUCTOS
+        const productos = [
+            { id: 1, nombre: "Kit Mantenimiento Básico", desc: "Repuestos universales multimarca", precioMin: 15000, precioMay: 11000, img: "https://via.placeholder.com/75" },
+            { id: 2, nombre: "Repuesto Tipo A", desc: "Compatibilidad garantizada", precioMin: 8500, precioMay: 6000, img: "https://via.placeholder.com/75" },
+            { id: 3, nombre: "Set de Accesorios Premium", desc: "Calidad de exportación", precioMin: 22000, precioMay: 16500, img: "https://via.placeholder.com/75" }
+        ];
+
+        let modoActual = 'minorista';
+        let carrito = [];
+
+        function renderProductos() {
+            const contenedor = document.getElementById('lista-productos');
+            contenedor.innerHTML = '';
+
+            productos.forEach(p => {
+                const precio = modoActual === 'minorista' ? p.precioMin : p.precioMay;
+                const etiqueta = modoActual === 'mayorista' ? ' (x10 un.)' : '';
+
+                contenedor.innerHTML += `
+                    <div class="card">
+                        <img src="${p.img}" alt="${p.nombre}">
+                        <div class="card-info">
+                            <h3>${p.nombre}</h3>
+                            <p>${p.desc}</p>
+                            <div class="precio">$${precio.toLocaleString('es-AR')}${etiqueta}</div>
+                        </div>
+                        <button class="btn-add" onclick="agregarAlCarrito(${p.id})">+ Agregar</button>
+                    </div>
+                `;
+            });
+        }
+
+        function setModo(modo) {
+            modoActual = modo;
+            document.getElementById('btn-minorista').classList.toggle('active', modo === 'minorista');
+            document.getElementById('btn-mayorista').classList.toggle('active', modo === 'mayorista');
+            carrito = []; // Reinicia carrito al cambiar lista
+            actualizarCarritoUI();
+            renderProductos();
+        }
+
+        function agregarAlCarrito(id) {
+            const prod = productos.find(p => p.id === id);
+            const precio = modoActual === 'minorista' ? prod.precioMin : prod.precioMay;
+            
+            carrito.push({ nombre: prod.nombre, precio: precio });
+            actualizarCarritoUI();
+        }
+
+        function actualizarCarritoUI() {
+            document.getElementById('cart-count').innerText = carrito.length;
+            const total = carrito.reduce((sum, item) => sum + item.precio, 0);
+            document.getElementById('cart-total').innerText = '$' + total.toLocaleString('es-AR');
+        }
+
+        function enviarPedido() {
+            if (carrito.length === 0) {
+                alert("Agregá al menos un producto al carrito para realizar el pedido.");
+                return;
+            }
+
+            let detalle = `Hola! Quisiera realizar el siguiente pedido (${modoActual.toUpperCase()}):\n\n`;
+            let total = 0;
+
+            carrito.forEach((item, index) => {
+                detalle += `${index + 1}. ${item.nombre} - $${item.precio.toLocaleString('es-AR')}\n`;
+                total += item.precio;
+            });
+
+            detalle += `\n*TOTAL: $${total.toLocaleString('es-AR')}*`;
+
+            const url = `https://wa.me/${NUMERO_WA}?text=${encodeURIComponent(detalle)}`;
+            window.open(url, '_blank');
+        }
+
+        // Inicializar
+        renderProductos();
+    </script>
+</body>
+</html>
